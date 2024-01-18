@@ -13,12 +13,16 @@ import org.littletonrobotics.junction.Logger;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
+import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
 import com.igknighters.constants.ConstValues.kSwerve;
 import com.igknighters.constants.ConstValues.kSwerve.AngleMotorConstants;
 import com.igknighters.constants.ConstValues.kSwerve.DriveMotorConstants;
@@ -81,10 +85,11 @@ public class SwerveModuleReal implements SwerveModule {
         driveConfig.Slot0.kI = DriveMotorConstants.kI;
         driveConfig.Slot0.kD = DriveMotorConstants.kD;
         driveConfig.Slot0.kV = 12.0 / (kSwerve.MAX_DRIVE_VELOCITY / (kSwerve.WHEEL_CIRCUMFERENCE * kSwerve.DRIVE_GEAR_RATIO));
-        driveConfig.CurrentLimits.StatorCurrentLimit = 50.0;
-        driveConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        // driveConfig.CurrentLimits.StatorCurrentLimit = 40.0;
+        // driveConfig.CurrentLimits.StatorCurrentLimitEnable = true;
 
         driveMotor.getConfigurator().apply(driveConfig);
+        postPID();
     }
 
     private void configureAngleMotor() {
@@ -167,6 +172,22 @@ public class SwerveModuleReal implements SwerveModule {
         return rotations * (kSwerve.WHEEL_CIRCUMFERENCE * kSwerve.DRIVE_GEAR_RATIO);
     }
 
+    private PIDController newPIDValues = new PIDController(
+        kSwerve.DriveMotorConstants.kP,
+        kSwerve.DriveMotorConstants.kI,
+        kSwerve.DriveMotorConstants.kD
+    );
+    private PIDController currPIDValues = new PIDController(
+        kSwerve.DriveMotorConstants.kP,
+        kSwerve.DriveMotorConstants.kI,
+        kSwerve.DriveMotorConstants.kD
+    );
+
+    private void postPID() {
+        SmartDashboard.putData("new pid",newPIDValues);
+        SmartDashboard.putData("curr pid", currPIDValues);
+    }
+
     @Override
     public void periodic() {
         BaseStatusSignal.refreshAll(
@@ -186,6 +207,31 @@ public class SwerveModuleReal implements SwerveModule {
         inputs.driveVelo = driveRotationsToMeters(driveVelocitySignal.getValue());
         inputs.driveVolts = driveVoltSignal.getValue();
         inputs.driveAmps = driveAmpSignal.getValue();
+
+        boolean needToConfig = false;
+    
+        if (newPIDValues.getP() != currPIDValues.getP()) {
+            needToConfig = true;
+            currPIDValues.setP(newPIDValues.getP());
+        }
+        if (newPIDValues.getI() != currPIDValues.getI()) {
+            needToConfig = true;
+            currPIDValues.setI(newPIDValues.getI());
+        }
+        if (newPIDValues.getD() != currPIDValues.getD()) {
+            needToConfig = true;
+            currPIDValues.setD(newPIDValues.getD());
+        }
+
+        if (needToConfig) {
+            var slotCfg = new Slot0Configs();
+            driveMotor.getConfigurator().refresh(slotCfg);
+            slotCfg.kP = currPIDValues.getP();
+            slotCfg.kI = currPIDValues.getI();
+            slotCfg.kD = currPIDValues.getD();
+            driveMotor.getConfigurator().apply(slotCfg);
+            needToConfig = false;
+        }
 
 
         Logger.processInputs("Swerve/SwerveModule[" + this.moduleNumber + "]", inputs);

@@ -39,9 +39,9 @@ public class TeleopSwerve extends Command {
 
         swerve.drive(
                 new Translation2d(translationVal, strafeVal)
-                        .times(kSwerve.MAX_DRIVE_VELOCITY),
+                .times(kSwerve.MAX_DRIVE_VELOCITY),
                 rotationVal * kSwerve.MAX_ANGULAR_VELOCITY,
                 true,
-                true);
+                false);
     }
 }
