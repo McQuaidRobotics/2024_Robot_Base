@@ -9,11 +9,13 @@ import com.ctre.phoenix.led.Animation;
 import com.ctre.phoenix.led.CANdle;
 import com.ctre.phoenix.led.CANdleConfiguration;
 import com.ctre.phoenix.led.ColorFlowAnimation;
+import com.ctre.phoenix.led.LarsonAnimation;
 import com.ctre.phoenix.led.RainbowAnimation;
 import com.ctre.phoenix.led.SingleFadeAnimation;
 import com.ctre.phoenix.led.StrobeAnimation;
 import com.ctre.phoenix.led.CANdle.LEDStripType;
 import com.ctre.phoenix.led.ColorFlowAnimation.Direction;
+import com.ctre.phoenix.led.LarsonAnimation.BounceMode;
 import com.pathplanner.lib.auto.AutoBuilder.TriFunction;
 
 import edu.wpi.first.wpilibj.DriverStation;
@@ -124,21 +126,28 @@ public class LED {
                     desc.r, desc.g, desc.b, 0, desc.speed, num, offset
                 );
             }),
-        SHOOTING(new LEDAnimDescriptor(245, 174, 10, 0.2, Direction.Forward),
+        SHOOTING(new LEDAnimDescriptor(245, 174, 10, 0.5, Direction.Forward),
             (desc, num, offset) -> {
-                return new ColorFlowAnimation(
-                    desc.r, desc.g, desc.b, 0, desc.speed, num, desc.direction, offset
+                return new LarsonAnimation(desc.r, desc.g, desc.b, 0, desc.speed, num, BounceMode.Back, 7, offset
                 );
             }),
         BOOTING(new LEDAnimDescriptor(255, 255, 255, 0.2, Direction.Forward),
             (desc, num, offset) -> {
-                return new StrobeAnimation(
+                return new SingleFadeAnimation(
                     desc.r, desc.g, desc.b, 0, desc.speed, num, offset
                 );
             }),
         OFF(new LEDAnimDescriptor(0, 0), (desc, num, offset) -> {
             return new RainbowAnimation(
                 desc.brightness, desc.speed, num
+            );
+        }),
+        WARNING(new LEDAnimDescriptor(250, 140, 50, 0.5, Direction.Forward), (desc, num, offset) -> {
+            return new StrobeAnimation(desc.r, desc.g, desc.b, 0, desc.speed, num, offset
+            );
+        }),
+        ERROR(new LEDAnimDescriptor(255, 0, 0, 0.5, Direction.Forward), (desc, num, offset) -> {
+            return new StrobeAnimation(desc.r, desc.g, desc.b, 0, desc.speed, num, offset
             );
         });
 
